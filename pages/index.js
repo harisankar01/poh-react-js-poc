@@ -2,10 +2,8 @@ import Head from 'next/head'
 import { useEffect, useState, useRef } from 'react'
 import { ethers } from 'ethers'
 import { hasEthereum } from '../utils/ethereum'
-import Greeter from '../src/artifacts/contracts/Greeter.sol/Greeter.json'
-import HCaptcha from '@hcaptcha/react-hcaptcha'
-
-import hCaptchaValidator from 'poh-validator-hcaptcha-react'
+// import Greeter from '../src/artifacts/contracts/Greeter.sol/Greeter.json'
+import HCaptchaValidator from 'poh-validator-hcaptcha-react';
 import { useProofOfHumanity } from 'poh-react'
 
 export default function Home () {
@@ -14,7 +12,8 @@ export default function Home () {
   const [newGreetingMessage, setNewGreetingMessageState] = useState('')
   const [connectedWalletAddress, setConnectedWalletAddressState] = useState('')
   const newGreetingInputRef = useRef()
-
+  const hcaptchaSitekey="27b7ae98-9f14-498d-8815-1008f1af95ea";
+  const validatorApiUrl="http://localhost:5000/api/v1/proof"
   const [token, setToken] = useState(null)
   const captchaRef = useRef(null)
 
@@ -22,14 +21,14 @@ export default function Home () {
     if (token) console.log(`hCaptcha Token: ${token}`)
   }, [token])
 
-  // const validator = (
-  //   <hCaptchaValidator
-  //     sitekey='0x89c821ae8f9abcd0737f910e3de1904699df9e390a9f184f01f941e20dac8a52'
-  //     url='http://localhost:8080/api/v1/proof'
-  //   />
-  // )
+ const validator = (
+    <HCaptchaValidator
+      validatorApiUrl={validatorApiUrl}
+      sitekey={hcaptchaSitekey}
+    />
+  );
+ const { getProofOfHumanity } = useProofOfHumanity(validator);
 
-  // const { getProofOfHumanity } = useProofOfHumanity(validator)
 
   // If wallet is already connected...
   useEffect(() => {
@@ -58,7 +57,7 @@ export default function Home () {
 
   // Call smart contract, fetch current value
   async function fetchGreeting () {
-    captchaRef.current.execute()
+
 
     // if (!hasEthereum()) {
     //   setConnectedWalletAddressState(`MetaMask unavailable`)
@@ -99,6 +98,31 @@ export default function Home () {
     //   body: JSON.stringify(data)
     // })
     // console.log(await response)
+
+    try {
+      const { error, errorMessage, proof } = await getProofOfHumanity();
+      if (error) {
+        setError(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      // const counterContract = new ethers.Contract(
+      //   contractAddress,
+      //   abi,
+      //   provider
+      // );
+      // const signer = provider.getSigner();
+      // const counterWithSigner = counterContract.connect(signer);
+      //   const tx = await counterWithSigner.increment(proof);
+      // const { events } = await tx.wait();
+      // if (events.length > 0 && events[0].args.currentCounter) {
+      //   setCount(Number(events[0].args.currentCounter));
+      // }
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   // Call smart contract, set new value
@@ -116,18 +140,20 @@ export default function Home () {
     const signer = provider.getSigner()
     const signerAddress = await signer.getAddress()
     setConnectedWalletAddressState(`Connected wallet: ${signerAddress}`)
-    const contract = new ethers.Contract(
-      process.env.NEXT_PUBLIC_GREETER_ADDRESS,
-      Greeter.abi,
-      signer
-    )
-    const transaction = await contract.setGreeting(newGreeting)
-    await transaction.wait()
-    setNewGreetingMessageState(
-      `Greeting updated to ${newGreeting} from ${greeting}.`
-    )
-    newGreetingInputRef.current.value = ''
-    setNewGreetingState('')
+    // COMMENTED FOR FRONTEND -------------------------------------
+    // const contract = new ethers.Contract(
+    //   process.env.NEXT_PUBLIC_GREETER_ADDRESS,
+    //   Greeter.abi,
+    //   signer
+    // )
+    // const transaction = await contract.setGreeting(newGreeting)
+    // await transaction.wait()
+    // setNewGreetingMessageState(
+    //   `Greeting updated to ${newGreeting} from ${greeting}.`
+    // )
+    // newGreetingInputRef.current.value = ''
+    // setNewGreetingState('')
+    //------------------------
   }
 
   return (
@@ -142,12 +168,13 @@ export default function Home () {
       </Head>
 
       <main className='space-y-8'>
-        {!process.env.NEXT_PUBLIC_GREETER_ADDRESS ? (
+        {/* Commented for frontend ---------------------------------- */}
+        {/* {!process.env.NEXT_PUBLIC_GREETER_ADDRESS ? (
           <p className='text-md'>
             Please add a value to the <pre>NEXT_PUBLIC_GREETER_ADDRESS</pre>{' '}
             environment variable.
           </p>
-        ) : (
+        ) : ( */}
           <>
             <h1 className='text-4xl font-semibold mb-8'>Women Safe Travel</h1>
             <div className='space-y-8'>
@@ -201,16 +228,9 @@ export default function Home () {
               </div> */}
             </div>
           </>
-        )}
+        {/* )} */}
+        {/* ------------------------------------------ */}
       </main>
-
-      <form>
-        <HCaptcha
-          sitekey='27b7ae98-9f14-498d-8815-1008f1af95ea'
-          onVerify={setToken}
-          ref={captchaRef}
-        />
-      </form>
 
       {/* <FormComponent>
         <HCaptcha
